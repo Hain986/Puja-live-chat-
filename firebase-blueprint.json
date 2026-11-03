@@ -1,0 +1,204 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with role, display name, avatar, and creator status",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "profileId": { "type": "string", "maxLength": 16 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "photoURL": { "type": "string", "maxLength": 1000 },
+        "role": { "type": "string", "enum": ["user", "creator", "moderator", "admin"] },
+        "isCreator": { "type": "boolean" },
+        "bio": { "type": "string", "maxLength": 500 },
+        "followersCount": { "type": "number" },
+        "totalGiftsReceived": { "type": "number" },
+        "isBanned": { "type": "boolean" },
+        "referralCode": { "type": "string", "maxLength": 32 },
+        "referredBy": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "displayName", "role"]
+    },
+    "Referral": {
+      "title": "Referral",
+      "description": "Referral record tracking invitations and rewards",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "referrerId": { "type": "string", "maxLength": 128 },
+        "referredUserId": { "type": "string", "maxLength": 128 },
+        "referredUserName": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "enum": ["joined", "completed"] },
+        "rewardAmount": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "completedAt": { "type": "string" }
+      },
+      "required": ["id", "referrerId", "referredUserId", "status", "createdAt"]
+    },
+    "Wallet": {
+      "title": "Wallet",
+      "description": "User diamond wallet containing balance, lifetime diamonds purchased and spent",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "diamondBalance": { "type": "number" },
+        "earningsBalance": { "type": "number" },
+        "lifetimePurchased": { "type": "number" },
+        "lifetimeSpent": { "type": "number" },
+        "lifetimeEarned": { "type": "number" },
+        "vipLevel": { "type": "number" },
+        "isFrozen": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "diamondBalance", "earningsBalance"]
+    },
+    "DailyCheckIn": {
+      "title": "DailyCheckIn",
+      "description": "User daily devotional check-in streak and free diamond reward tracking",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "streakDays": { "type": "number" },
+        "lastCheckInDate": { "type": "string", "maxLength": 64 },
+        "totalCheckIns": { "type": "number" },
+        "totalDiamondsClaimed": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "streakDays", "lastCheckInDate"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Financial ledger record of diamond top-up, gift sent, or creator earnings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "idempotencyKey": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["purchase", "gift_sent", "gift_received", "withdrawal", "bonus"] },
+        "amountDiamonds": { "type": "number" },
+        "amountFiatUSD": { "type": "number" },
+        "giftId": { "type": "string", "maxLength": 128 },
+        "giftName": { "type": "string", "maxLength": 100 },
+        "recipientId": { "type": "string", "maxLength": 128 },
+        "roomId": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["COMPLETED", "PENDING", "FAILED", "FLAGGED", "REVERSED"] },
+        "riskScore": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "idempotencyKey", "userId", "type", "amountDiamonds", "status", "createdAt"]
+    },
+    "GiftItem": {
+      "title": "GiftItem",
+      "description": "Catalog item for virtual gifts with diamond cost and animation properties",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 100 },
+        "category": { "type": "string", "enum": ["Devotional", "Popular", "Luxury", "Special"] },
+        "diamondPrice": { "type": "number" },
+        "icon": { "type": "string", "maxLength": 200 },
+        "animationType": { "type": "string", "maxLength": 64 },
+        "soundEffect": { "type": "string", "maxLength": 64 },
+        "description": { "type": "string", "maxLength": 300 },
+        "isActive": { "type": "boolean" },
+        "isVipOnly": { "type": "boolean" }
+      },
+      "required": ["id", "name", "category", "diamondPrice", "animationType", "isActive"]
+    },
+    "LiveRoom": {
+      "title": "LiveRoom",
+      "description": "Live streaming room details and real-time gift stats",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "creatorId": { "type": "string", "maxLength": 128 },
+        "creatorName": { "type": "string", "maxLength": 100 },
+        "creatorPhoto": { "type": "string", "maxLength": 1000 },
+        "title": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "maxLength": 64 },
+        "isLive": { "type": "boolean" },
+        "viewerCount": { "type": "number" },
+        "totalDiamondsReceived": { "type": "number" },
+        "livekitRoomName": { "type": "string", "maxLength": 128 },
+        "startedAt": { "type": "string" }
+      },
+      "required": ["id", "creatorId", "creatorName", "title", "isLive"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Security audit record for admin and critical wallet events",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "action": { "type": "string", "maxLength": 100 },
+        "performedBy": { "type": "string", "maxLength": 128 },
+        "targetUser": { "type": "string", "maxLength": 128 },
+        "details": { "type": "string", "maxLength": 1000 },
+        "ipAddress": { "type": "string", "maxLength": 64 },
+        "riskLevel": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "action", "performedBy", "timestamp"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User notifications for live status, messages, and gifts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["live_start", "message", "gift_received"] },
+        "title": { "type": "string", "maxLength": 100 },
+        "message": { "type": "string", "maxLength": 500 },
+        "senderId": { "type": "string", "maxLength": 128 },
+        "senderName": { "type": "string", "maxLength": 100 },
+        "isRead": { "type": "boolean" },
+        "metadata": { "type": "object" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "userId", "type", "title", "message", "isRead", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Public and user profiles"
+    },
+    "/wallets/{userId}": {
+      "schema": "Wallet",
+      "description": "User diamond balances - server-authoritative"
+    },
+    "/daily_checkins/{userId}": {
+      "schema": "DailyCheckIn",
+      "description": "Daily devotional check-in streak and free diamond reward tracking"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Immutable ledger of all diamond transactions"
+    },
+    "/gifts/{giftId}": {
+      "schema": "GiftItem",
+      "description": "Virtual gift catalog entries"
+    },
+    "/rooms/{roomId}": {
+      "schema": "LiveRoom",
+      "description": "Live streaming rooms"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Real-time user notifications"
+    },
+    "/audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Security and transaction audit trail"
+    },
+    "/referrals/{referralId}": {
+      "schema": "Referral",
+      "description": "User referral tracking records"
+    }
+  }
+}

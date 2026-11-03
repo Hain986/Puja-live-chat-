@@ -1,0 +1,147 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default Deny Catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 3. Primitive Definition (Phase 3)
+    function isValidId(id) { 
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    
+    // Auth tokens NEVER contain custom claims. Explicitly look up roles.
+    function isAdmin() { 
+      return isVerified() && (
+        request.auth.token.email == 'rkmathurrkmathur7@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      ); 
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 2. Validation Blueprints (Phase 2)
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'role']) &&
+             data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'role', 'bio', 'updatedAt', 'vipLevel', 'followersCount']) &&
+             data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 100 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             data.role in ['user', 'creator', 'admin'];
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll(['userId', 'type', 'title', 'message', 'isRead', 'timestamp']) &&
+             data.keys().hasOnly(['userId', 'type', 'title', 'message', 'isRead', 'timestamp', 'senderId', 'senderName', 'metadata']) &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.type in ['live_start', 'message', 'gift_received', 'system'] &&
+             data.title is string && data.title.size() <= 100 &&
+             data.message is string && data.message.size() <= 500 &&
+             data.isRead is bool &&
+             (!data.keys().contains('senderId') || (data.senderId is string && data.senderId.size() <= 128)) &&
+             (!data.keys().contains('senderName') || (data.senderName is string && data.senderName.size() <= 100));
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId);
+      allow list: if isSignedIn();
+      allow create: if isVerified() && isOwner(userId) && isValidUser(incoming());
+      allow update: if isVerified() && (
+        isAdmin() ||
+        (isOwner(userId) &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'bio', 'photoURL', 'updatedAt']) &&
+         isValidUser(incoming()))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Diamond Wallets (Server Authoritative)
+    match /wallets/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Daily Check-In Tracking
+    match /daily_checkins/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Transaction Ledger (Append-only & Immutable)
+    match /transactions/{transactionId} {
+      allow get: if isSignedIn() && isValidId(transactionId) && (
+        existing().userId == request.auth.uid || 
+        existing().recipientId == request.auth.uid || 
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        isAdmin() ||
+        existing().userId == request.auth.uid ||
+        existing().recipientId == request.auth.uid
+      );
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // Virtual Gift Catalog
+    match /gifts/{giftId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Live Streaming Rooms
+    match /rooms/{roomId} {
+      allow read: if true;
+      allow create: if isVerified() && isValidId(roomId);
+      allow update: if isVerified() && (
+        isAdmin() ||
+        (existing().creatorId == request.auth.uid &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'isLive', 'viewerCount', 'totalDiamondsReceived']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Real-time Notifications (The "Query Enforcer")
+    match /notifications/{notificationId} {
+      allow get: if isOwner(existing().userId) || isAdmin();
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow create: if isValidNotification(incoming());
+      allow update: if isSignedIn() && (
+        (isOwner(existing().userId) && incoming().diff(existing()).affectedKeys().hasOnly(['isRead'])) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Security & Audit Logs
+    match /audit_logs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Admins Collection
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Referrals (Pillar 8: Query Enforcer)
+    match /referrals/{referralId} {
+      allow get: if isSignedIn() && (isOwner(existing().referrerId) || isOwner(existing().referredUserId) || isAdmin());
+      allow list: if isSignedIn() && (existing().referrerId == request.auth.uid || existing().referredUserId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn(); // Validated on server/functions or complex rules
+      allow update: if isAdmin(); // Status changes are server-authoritative
+      allow delete: if isAdmin();
+    }
+  }
+}

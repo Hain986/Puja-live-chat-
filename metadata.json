@@ -1,0 +1,6 @@
+{
+  "name": "Love Chat - Virtual Economy",
+  "description": "Live social streaming platform with virtual diamond wallet, animated gift economy, creator analytics, and admin anti-fraud dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
